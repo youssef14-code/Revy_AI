@@ -2,7 +2,7 @@
 import re
 from typing import List, Dict
 
-SECTION_REGEX = r"\n(\d+)\.\s([A-Z &]+)\n"
+SECTION_REGEX = r"\n(\d+)\.\s(.+?)\n"
 
 def split_layers(text: str) -> Dict[str, str]:
     """
