@@ -1,12 +1,15 @@
-import pdfplumber
+# loader.py
+import fitz  # PyMuPDF
 
-def extract_text_from_pdf(pdf_path: str) -> str:
-    full_text = []
+def load_pdf(pdf_path: str) -> str:
+    """
+    Load PDF and return raw extracted text.
+    This should be called ONCE.
+    """
+    doc = fitz.open(pdf_path)
+    full_text = ""
 
-    with pdfplumber.open(pdf_path) as pdf:
-        for page in pdf.pages:
-            text = page.extract_text()
-            if text:
-                full_text.append(text)
+    for page in doc:
+        full_text += page.get_text() + "\n"
 
-    return "\n\n".join(full_text)
+    return full_text
