@@ -1,7 +1,7 @@
 # embeddings.py
 from sentence_transformers import SentenceTransformer
 
-MODEL_NAME = "intfloat/multilingual-e5-large"
+MODEL_NAME = "sentence-transformers/paraphrase-multilingual-mpnet-base-v2"
 
 class EmbeddingModel:
     def __init__(self):
