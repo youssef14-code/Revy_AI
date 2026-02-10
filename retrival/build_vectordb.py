@@ -1,23 +1,23 @@
-import faiss
-import pickle
 import os
-
+import chromadb
+from chromadb.config import Settings
 from loaders import load_pdf
 from Preprocessing import preprocess_text
 from chunker import build_chunks
 from embeddings import EmbeddingModel
 
-# ---------- PATH FIX ----------
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DATA_DIR = os.path.join(BASE_DIR, "data")
-
-FAISS_INDEX_PATH = os.path.join(DATA_DIR, "faiss.index")
-METADATA_PATH = os.path.join(DATA_DIR, "metadata.pkl")
-# ----------------------------
-PDF_PATH = r"C:\Users\hp\Desktop\Revy_AI\retrival\AI Agent Knowledge Base.pdf"
+# ---------- CONFIG ----------
+PDF_PATH = r"C:\Users\Lenovo\OneDrive - Alexandria National University\Desktop\revy_ai\retrival/AI Agent Knowledge Base.pdf"
 SOURCE_NAME = "AI Agent Knowledge Base"
 
+CHROMA_DIR = "chroma_db"
+COLLECTION_NAME = "ai_agent_kb"
+# ----------------------------
+
 def main():
+    # Ensure the directory exists
+    os.makedirs(CHROMA_DIR, exist_ok=True)
+
     print("📄 Loading PDF...")
     raw_text = load_pdf(PDF_PATH)
 
@@ -27,28 +27,38 @@ def main():
     print("✂️ Chunking document...")
     chunks = build_chunks(clean_text, source=SOURCE_NAME)
 
+    texts = [c["text"] for c in chunks]
+    metadatas = [c["metadata"] for c in chunks]
+    ids = [c["metadata"]["chunk_id"] for c in chunks]
+
     print("🧠 Embedding chunks (ONE TIME)...")
     embedder = EmbeddingModel()
-    texts = [c["text"] for c in chunks]
     embeddings = embedder.embed_documents(texts)
 
-    dim = embeddings.shape[1]
-    index = faiss.IndexFlatIP(dim)
-    index.add(embeddings)
+    print("🗄️ Building Chroma DB...")
+    client = chromadb.Client(
+        Settings(persist_directory=CHROMA_DIR, anonymized_telemetry=False)
+    )
 
-    print("📁 Ensuring data directory exists...")
-    os.makedirs(DATA_DIR, exist_ok=True)
+    collection = client.get_or_create_collection(
+        name=COLLECTION_NAME,
+        metadata={"hnsw:space": "cosine"}
+    )
 
-    print("💾 Saving FAISS index...")
-    faiss.write_index(index, FAISS_INDEX_PATH)
+    # Clear old data if exists
+    if collection.count() > 0:
+        print("⚠️ Collection already has data. Clearing it...")
+        collection.delete(where={})
 
-    # Save text + metadata together
-    documents = [{"text": c["text"], "metadata": c["metadata"]} for c in chunks]
-    print("💾 Saving documents + metadata...")
-    with open(METADATA_PATH, "wb") as f:
-        pickle.dump(documents, f)
+    # Add new chunks
+    collection.add(
+        documents=texts,
+        embeddings=[e.tolist() for e in embeddings],
+        metadatas=metadatas,
+        ids=ids
+    )
 
-    print(f"✅ Done. Embedded {len(texts)} chunks.")
+    print(f"✅ Done. Stored {len(texts)} chunks in Chroma at '{CHROMA_DIR}'.")
 
 if __name__ == "__main__":
     main()

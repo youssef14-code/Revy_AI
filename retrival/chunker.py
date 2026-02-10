@@ -39,11 +39,42 @@ def split_sections(layer_text: str) -> List[Dict]:
     return sections
 
 
-def build_chunks(text: str, source: str) -> List[Dict]:
-    """
-    Build final RAG chunks.
-    Layer → Section = Chunk
-    """
+GENERIC_TITLES = {
+    "context",
+    "overview",
+    "description",
+    "notes",
+    "summary",
+    "introduction"
+}
+
+
+def extract_internal_title(text: str) -> str:
+    for line in text.split("\n"):
+        line = line.strip()
+
+        if not line:
+            continue
+
+        lower = line.lower()
+
+        # استبعد الكلمات العامة
+        if lower in GENERIC_TITLES:
+            continue
+
+        # استبعد bullets
+        if line.startswith("-"):
+            continue
+
+        # عنوان منطقي
+        if 10 < len(line) < 80 and line[0].isupper():
+            return line
+
+    return "General Information"
+
+
+
+def build_chunks(text: str, source: str):
     chunks = []
     layers = split_layers(text)
 
@@ -51,16 +82,25 @@ def build_chunks(text: str, source: str) -> List[Dict]:
         sections = split_sections(layer_text)
 
         for sec in sections:
+            internal_title = extract_internal_title(sec["text"])
+
+            chunk_text = (
+                f"{internal_title}\n\n"
+                f"{sec['text']}"
+            )
+
             chunks.append({
-                "text": sec["text"],
+                "text": chunk_text,
                 "metadata": {
                     "source": source,
                     "layer": layer_name,
-                    "section_id": sec["section_id"],
                     "section_title": sec["section_title"],
-                    "chunk_id": f"{layer_name}_S{sec['section_id']}",
-                    "audience": "internal" if layer_name == "agent_knowledge_base" else "client"
+                    "internal_title": internal_title,
+                    "chunk_id": f"{layer_name}_S{sec['section_id']}"
                 }
             })
 
     return chunks
+
+
+
