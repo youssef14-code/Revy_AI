@@ -1,8 +1,12 @@
 # embeddings.py
 from sentence_transformers import SentenceTransformer
+from functools import lru_cache
 
 MODEL_NAME = "sentence-transformers/paraphrase-multilingual-mpnet-base-v2"
 
+@lru_cache(maxsize=1)
+def get_model():
+    return SentenceTransformer(MODEL_NAME)
 class EmbeddingModel:
     def __init__(self):
         self.model = SentenceTransformer(MODEL_NAME)

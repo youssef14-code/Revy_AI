@@ -1,5 +1,6 @@
 from langchain_core.tools import tool
 from Agent_Builder.services import BookingService, MemoryService
+from retrival.retriever import RetrievalService
 
 def create_booking_tool(user):  # ← رجّع user هنا
     
@@ -35,3 +36,27 @@ def create_booking_tool(user):  # ← رجّع user هنا
             }
 
     return book_appointment
+
+  
+
+
+# -----------------------------
+# RAG Tool
+# -----------------------------
+def create_rag_tool():
+    
+    @tool
+    def query_knowledge_base(question: str) -> str:
+        """
+        Search the company knowledge base to answer questions about:
+        - RevyAI services, solutions, and capabilities
+        - AI agents and automation systems
+        - Company policies, rules, and operational guidelines
+        - Pricing, integration, deployment, or technical details
+        
+        Use this tool whenever the user asks anything about the company or its offerings.
+        Do NOT use this tool for greetings, booking appointments, or unrelated questions.
+        """
+        return RetrievalService().search(question)
+
+    return query_knowledge_base

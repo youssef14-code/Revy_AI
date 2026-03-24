@@ -22,7 +22,7 @@ class User(db.Model):
     appointments = db.relationship(
         "Appointment",
         back_populates="user",
-        cascade="all, delete-orphan"
+        cascade="all, delete-orphan",
     )
 
 
@@ -54,4 +54,4 @@ class Appointment(db.Model):
     )
 
     # Relationship
-    user = db.relationship("User", back_populates="appointments")
+    user = db.relationship("User", back_populates="appointments" )
